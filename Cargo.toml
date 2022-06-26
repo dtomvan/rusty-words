@@ -1,0 +1,26 @@
+[package]
+name = "rusty-words"
+description = "Learn your words in your terminal"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aho-corasick = "0.7.18"
+chrono = "0.4.19"
+clap = { version = "3.2.6", features = ["derive"] }
+color-eyre = "0.6.1"
+crossterm = "0.23.2"
+dirs = "4.0.0"
+itertools = "0.10.3"
+libc = "0.2.126"
+rand = "0.8.5"
+regex = { version = "1.5.6", features = ["pattern"] }
+ron = "0.7.1"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_with = "1.14.0"
+tabled = "0.7.0"
+tui = "0.18.0"
+tui-input = "0.4.2"
+uuid = "1.1.2"
