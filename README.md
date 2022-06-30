@@ -26,6 +26,7 @@ My goal is to:
 - Practice writing a TUI in rust
 - Make something you could (but not nessecarily want to) use for practicing
   term-definition pairs.
+
 The goal is NOT:
 - Make a complete drop-in replacement for some pre-existing software, even
   though I've also made `word-tools`, a helper for converting between TSV and
