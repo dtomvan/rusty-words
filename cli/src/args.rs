@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{clap_derive::ArgEnum, Args, Parser, Subcommand};
 
-use super::model::WordsDirection;
+use rusty_words_common::model::WordsDirection;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(about, author, version)]
@@ -91,5 +91,5 @@ pub enum TryMethod {
 #[derive(Args, Debug, Clone)]
 pub struct ListArgs {
     /// Optional filter by language
-    pub language: Option<String>,
+    pub filter: Option<String>,
 }

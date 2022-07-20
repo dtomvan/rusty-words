@@ -1,0 +1,21 @@
+[package]
+name = "rusty-words-common"
+description = "Rusty-words common library"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aho-corasick = "0.7.18"
+chrono = "0.4.19"
+clap = { version = "3.2.6", features = ["derive"] }
+color-eyre = "0.6.1"
+dirs = "4.0.0"
+libc = "0.2.126"
+rand = "0.8.5"
+ron = "0.7.1"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_with = "1.14.0"
+tabled = "0.7.0"
+uuid = "1.1.2"

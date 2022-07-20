@@ -1,0 +1,25 @@
+[package]
+name = "rusty-words-cli"
+description = "Learn your words in your terminal"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "3.2.6", features = ["derive"] }
+color-eyre = "0.6.1"
+crossterm = "0.23.2"
+itertools = "0.10.3"
+libc = "0.2.126"
+rand = "0.8.5"
+regex = { version = "1.5.6", features = ["pattern"] }
+ron = "0.7.1"
+rusty-words-common = { path = "../crates/rusty-words-common" }
+serde = { version = "1.0.137" }
+tui = "0.18.0"
+tui-input = "0.4.2"
+
+[[bin]]
+name = "rwds-cli"
+path = "src/main.rs"

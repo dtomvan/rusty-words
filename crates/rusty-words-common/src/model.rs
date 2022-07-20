@@ -21,8 +21,10 @@ use std::{
     collections::HashMap,
     convert::TryFrom,
     fmt::{Debug, Display},
+    fs::File,
+    io::Write,
     ops::BitAnd,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use aho_corasick::AhoCorasick;
@@ -32,10 +34,13 @@ use color_eyre::{
     eyre::{eyre, Context},
     Help, Report, Result,
 };
+use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tabled::{Style, Table, Tabled};
 use uuid::Uuid;
+
+use crate::paths::new_words_file;
 
 #[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
 pub struct WordsIndex {
@@ -71,6 +76,36 @@ impl WordsIndex {
             .remove(id.checked_sub(1).ok_or_else(Self::_underflow)?);
         Ok(meta)
     }
+
+    /// Returns the ID of the new entry
+    pub fn import_list(
+        &mut self,
+        name: String,
+        data: &str,
+        filename: &Path,
+        term_lang: Option<String>,
+        def_lang: Option<String>,
+        dir: Option<PathBuf>,
+    ) -> Result<usize> {
+        let parsed = PrimitiveWordsList::try_from(data)
+            .with_context(|| format!("while trying to import {}", filename.display()))?;
+
+        let list = WordsList::from(parsed);
+        let meta = WordsMeta::new(name, term_lang, def_lang, dir);
+        let words_file = new_words_file(&meta.uuid)?;
+        self.lists.push(meta);
+
+        let ser = ron::ser::to_string_pretty(&list, PrettyConfig::default())?;
+        write!(
+            &mut File::options()
+                .write(true)
+                .create_new(true)
+                .open(words_file)?,
+            "{ser}"
+        )?;
+
+        Ok(self.lists.len())
+    }
 }
 
 #[serde_as]
@@ -79,13 +114,38 @@ pub struct WordsMeta {
     pub name: String,
     #[serde_as(as = "DisplayFromStr")]
     pub uuid: Uuid,
-    pub terms: Option<String>,
-    pub definition: Option<String>,
+    pub terms: Language,
+    pub definition: Language,
     #[serde_as(as = "DisplayFromStr")]
     pub created_at: DateTime<Utc>,
     #[serde_as(as = "DisplayFromStr")]
     pub last_modified: DateTime<Utc>,
     pub folder: Option<PathBuf>,
+}
+
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct Language(pub Option<String>);
+
+impl Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Some(ref s) => write!(f, "{}", format_language_code(&s)),
+            None => write!(f, "not set"),
+        }
+    }
+}
+
+impl Debug for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self.0 {
+                Some(ref s) => &s,
+                None => "null",
+            }
+        )
+    }
 }
 
 pub fn format_language_code(haystack: impl AsRef<str>) -> String {
@@ -110,9 +170,7 @@ impl Display for WordsMeta {
         if f.alternate() {
             writeln!(
                 f,
-                "name\t{name}\nterm_lang\t{}\ndef_lang\t{}\ncreated_at\t{}\nlast_modified\t{}\nfolder\t{}\nuuid\t{}",
-                terms.clone().unwrap_or_else(|| String::from("null")),
-                definition.clone().unwrap_or_else(|| String::from("null")),
+                "name\t{name}\nterm_lang\t{terms:?}\ndef_lang\t{definition:?}\ncreated_at\t{}\nlast_modified\t{}\nfolder\t{}\nuuid\t{}",
                 last_modified,
                 created_at,
                 folder.clone().unwrap_or_else(|| PathBuf::from("null")).display(),
@@ -120,10 +178,10 @@ impl Display for WordsMeta {
             )?;
         } else {
             writeln!(f, "Name: {name}")?;
-            if let Some(ref term) = terms {
+            if let Some(ref term) = terms.0 {
                 writeln!(f, "Terms: {}", format_language_code(term))?;
             }
-            if let Some(ref definition) = definition {
+            if let Some(ref definition) = definition.0 {
                 writeln!(f, "Definitions: {}", format_language_code(definition))?;
             }
             writeln!(
@@ -152,8 +210,8 @@ impl WordsMeta {
 
         Self {
             name,
-            terms,
-            definition,
+            terms: Language(terms),
+            definition: Language(definition),
             folder,
             uuid,
             created_at,
@@ -213,7 +271,7 @@ pub struct PrintableWordsEntry {
     definitions: String,
     direction: WordsDirection,
     #[tabled(rename = "times answered correctly")]
-    times_answered_correctly: usize,
+    times_correct: usize,
 }
 
 impl From<WordsEntry<'_>> for PrintableWordsEntry {
@@ -222,7 +280,7 @@ impl From<WordsEntry<'_>> for PrintableWordsEntry {
             term: w.terms.join(", "),
             definitions: w.definitions.join(", "),
             direction: w.direction,
-            times_answered_correctly: w.times_answered_correctly,
+            times_correct: w.times_answered_correctly,
         }
     }
 }

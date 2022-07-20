@@ -5,8 +5,7 @@ use std::{
     io::Write,
 };
 
-use crate::{
-    cli::TryMethod,
+use rusty_words_common::{
     model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
     paths::{root_dir, words_file_exists},
 };
@@ -30,7 +29,7 @@ use tui::{
 use tui_input::backend::crossterm as input_backend;
 use tui_input::Input;
 
-use super::model::format_language_code;
+use crate::args::TryMethod;
 
 pub fn try_list(
     index: &mut WordsIndex,
@@ -53,14 +52,7 @@ pub fn try_list(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let res = try_tui(
-        &mut words,
-        &mut terminal,
-        meta,
-        &method,
-        direction,
-        shuffle,
-    );
+    let res = try_tui(&mut words, &mut terminal, meta, &method, direction, shuffle);
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -85,10 +77,10 @@ pub fn try_tui(
     let total_words = list.0.len();
     let mut n = 0;
     let mut shuffle_map = HashMap::new();
-    let mut rng = rand::thread_rng();
 
     if shuffle {
         let mut random_array = (0..total_words).collect_vec();
+        let mut rng = rand::thread_rng();
         random_array.shuffle(&mut rng);
         shuffle_map = HashMap::from_iter((0..total_words).zip(random_array));
     }
@@ -105,18 +97,10 @@ pub fn try_tui(
     let total_progress: usize = 3;
     let td_progress = total_progress.div_floor(2);
     let tui_total = total_words.to_string();
-    let none = || String::from("not set");
-    // TODO: DRY
-    let term_lang = meta
-        .terms
-        .as_ref()
-        .map(format_language_code)
-        .unwrap_or_else(none);
-    let def_lang = meta
-        .terms
-        .as_ref()
-        .map(format_language_code)
-        .unwrap_or_else(none);
+
+    let term_lang = meta.terms.to_string();
+    let def_lang = meta.definition.to_string();
+
     let mut message = Spans(Vec::new());
     while n < total_words {
         let (index, front, mut progress) = rotation.pop_front().unwrap();
@@ -198,10 +182,7 @@ struct App<'a> {
     def_lang: &'a str,
 }
 
-fn write_and_check<B: Backend>(
-    terminal: &mut Terminal<B>,
-    app: App<'_>,
-) -> Result<(bool, String)> {
+fn write_and_check<B: Backend>(terminal: &mut Terminal<B>, app: App<'_>) -> Result<(bool, String)> {
     let mut input: Input = String::new().into();
     loop {
         terminal.draw(|f| write_ui(f, &app, input.value()))?;

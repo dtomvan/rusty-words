@@ -15,6 +15,7 @@ Learn your words in your terminal.
 - Configure how you should be judged (how many correct answers given before
   accepting a term as learned, resetting your progress on a term when you got it
   wrong, how many words to keep in rotation, how to check if the user is correct etc.)
+- Display itself as a GUI
 
 ## What it may be able to do at some point
 - Keep track of a "score" per term, lowering it exponentially each day you

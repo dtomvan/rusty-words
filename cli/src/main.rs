@@ -1,23 +1,27 @@
 #![feature(path_file_prefix, option_result_contains, drain_filter, int_roundings)]
 
-use std::{convert::TryFrom, fs::File, io::Write, path::{PathBuf, Path}, process::Command};
+use std::{
+    fs::File,
+    io::Write,
+    process::Command,
+};
 
 use clap::Parser;
 use color_eyre::{
-    eyre::{eyre, Context},
+    eyre::{eyre},
     Help, Result,
 };
 use itertools::Itertools;
 
-use cli::{GCArgs, ImportArgs, ListArgs, NewArgs, RmArgs, ShowArgs, TryArgs};
-use model::{PrimitiveWordsList, WordsIndex, WordsList, WordsMeta};
-use paths::{index_file, new_words_file, root_dir, words_file_exists};
-use ron::ser::PrettyConfig;
 
-mod cli;
-mod lang_codes;
-mod model;
-mod paths;
+use args::{GCArgs, ImportArgs, ListArgs, NewArgs, RmArgs, ShowArgs, TryArgs};
+use ron::ser::PrettyConfig;
+use rusty_words_common::model::{
+    WordsDirection, WordsIndex, WordsList,
+};
+use rusty_words_common::paths::{index_file, root_dir, words_file_exists};
+
+mod args;
 mod tui;
 
 fn main() -> Result<()> {
@@ -25,7 +29,7 @@ fn main() -> Result<()> {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
 
-    let args = cli::Cli::parse();
+    let args = args::Cli::parse();
     color_eyre::install()?;
     let root_dir = root_dir()?;
     std::fs::create_dir_all(&root_dir)?;
@@ -54,7 +58,7 @@ fn main() -> Result<()> {
     };
 
     match args.command {
-        cli::Command::Import(ImportArgs {
+        args::Command::Import(ImportArgs {
             filename,
             term_lang,
             def_lang,
@@ -70,15 +74,7 @@ fn main() -> Result<()> {
                 std::io::stdin().read_line(&mut name)?;
                 name
             };
-            let id = import_list(
-                &mut index,
-                name.clone(),
-                &data,
-                &filename,
-                term_lang,
-                def_lang,
-                dir,
-            )?;
+            let id = index.import_list(name.clone(), &data, &filename, term_lang, def_lang, dir)?;
             println!(
                 "Successfully imported words list `{}` from `{}` with ID {}.",
                 name,
@@ -86,7 +82,7 @@ fn main() -> Result<()> {
                 id
             );
         }
-        cli::Command::Show(ShowArgs { ids, porcelain }) => {
+        args::Command::Show(ShowArgs { ids, porcelain }) => {
             for id in ids {
                 let meta = index.get(id)?;
                 let words_file = words_file_exists(&root_dir, &meta.uuid)?;
@@ -100,7 +96,7 @@ fn main() -> Result<()> {
             }
             return Ok(());
         }
-        cli::Command::Ls(ListArgs { language }) => {
+        args::Command::Ls(ListArgs { filter }) => {
             let map = index
                 .lists
                 .into_iter()
@@ -117,11 +113,7 @@ fn main() -> Result<()> {
                 let mut seen_first = false;
 
                 for (id, list) in lists.into_iter().filter(|(_, list)| {
-                    if let Some(ref language) = language {
-                        list.terms.contains(language) || list.definition.contains(language)
-                    } else {
-                        true
-                    }
+                    filter.is_none() || filter == list.terms.0 || filter == list.definition.0
                 }) {
                     seen_first |= true;
                     println!("{}. {}", id + 1, list.name);
@@ -133,7 +125,7 @@ fn main() -> Result<()> {
             }
             return Ok(());
         }
-        cli::Command::Rm(RmArgs { mut ids, force }) => {
+        args::Command::Rm(RmArgs { mut ids, force }) => {
             ids.sort_unstable();
             ids.dedup();
             ids.reverse();
@@ -159,7 +151,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-        cli::Command::GarbageCollect(GCArgs { dry_run }) => {
+        args::Command::GarbageCollect(GCArgs { dry_run }) => {
             let mut patterns = index
                 .lists
                 .iter()
@@ -209,7 +201,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-        cli::Command::New(NewArgs {
+        args::Command::New(NewArgs {
             name,
             term_lang,
             def_lang,
@@ -242,18 +234,10 @@ fn main() -> Result<()> {
                 .with_suggestion(|| "Try setting $EDITOR correctly (or installing vim)")?
                 .wait()?;
             let data = std::fs::read_to_string(&path)?;
-            let id = import_list(
-                &mut index,
-                name,
-                &data,
-                &path,
-                Some(term_lang),
-                Some(def_lang),
-                dir,
-            )?;
+            let id = index.import_list(name, &data, &path, Some(term_lang), Some(def_lang), dir)?;
             println!("Successfully created list {id}.");
         }
-        cli::Command::Try(TryArgs {
+        args::Command::Try(TryArgs {
             id,
             method,
             direction,
@@ -263,7 +247,7 @@ fn main() -> Result<()> {
                 &mut index,
                 id,
                 method,
-                direction.unwrap_or(model::WordsDirection::Auto),
+                direction.unwrap_or(WordsDirection::Auto),
                 shuffle,
             )?;
         }
@@ -275,34 +259,4 @@ fn main() -> Result<()> {
     write!(&mut index_file, "{ser}")?;
 
     Ok(())
-}
-
-/// Returns the ID of the new entry
-fn import_list(
-    index: &mut WordsIndex,
-    name: String,
-    data: &str,
-    filename: &Path,
-    term_lang: Option<String>,
-    def_lang: Option<String>,
-    dir: Option<PathBuf>,
-) -> Result<usize> {
-    let parsed = PrimitiveWordsList::try_from(data)
-        .with_context(|| format!("while trying to import {}", filename.display()))?;
-
-    let list = WordsList::from(parsed);
-    let meta = WordsMeta::new(name, term_lang, def_lang, dir);
-    let words_file = new_words_file(&meta.uuid)?;
-    index.lists.push(meta);
-
-    let ser = ron::ser::to_string_pretty(&list, PrettyConfig::default())?;
-    write!(
-        &mut File::options()
-            .write(true)
-            .create_new(true)
-            .open(words_file)?,
-        "{ser}"
-    )?;
-
-    Ok(index.lists.len())
 }
