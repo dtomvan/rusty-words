@@ -1,24 +1,14 @@
-#![feature(path_file_prefix, option_result_contains, drain_filter, int_roundings)]
+#![feature(option_get_or_insert_default, path_file_prefix, option_result_contains, drain_filter, int_roundings)]
 
-use std::{
-    fs::File,
-    io::Write,
-    process::Command,
-};
+use std::{fs::File, io::Write, process::Command};
 
 use clap::Parser;
-use color_eyre::{
-    eyre::{eyre},
-    Help, Result,
-};
+use color_eyre::{eyre::eyre, Help, Result};
 use itertools::Itertools;
-
 
 use args::{GCArgs, ImportArgs, ListArgs, NewArgs, RmArgs, ShowArgs, TryArgs};
 use ron::ser::PrettyConfig;
-use rusty_words_common::model::{
-    WordsDirection, WordsIndex, WordsList,
-};
+use rusty_words_common::model::{WordsDirection, WordsIndex, WordsList};
 use rusty_words_common::paths::{index_file, root_dir, words_file_exists};
 
 mod args;
@@ -242,6 +232,7 @@ fn main() -> Result<()> {
             method,
             direction,
             shuffle,
+            reset,
         }) => {
             tui::try_list(
                 &mut index,
@@ -249,6 +240,7 @@ fn main() -> Result<()> {
                 method,
                 direction.unwrap_or(WordsDirection::Auto),
                 shuffle,
+                reset,
             )?;
         }
         _ => todo!(),

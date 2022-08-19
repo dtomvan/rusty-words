@@ -121,6 +121,8 @@ pub struct WordsMeta {
     #[serde_as(as = "DisplayFromStr")]
     pub last_modified: DateTime<Utc>,
     pub folder: Option<PathBuf>,
+    pub progress: Option<usize>,
+    pub shuffle_map: Option<HashMap<usize, usize>>,
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -166,15 +168,33 @@ impl Display for WordsMeta {
             definition,
             uuid,
             folder,
+            progress,
+            shuffle_map,
         } = self;
         if f.alternate() {
             writeln!(
                 f,
-                "name\t{name}\nterm_lang\t{terms:?}\ndef_lang\t{definition:?}\ncreated_at\t{}\nlast_modified\t{}\nfolder\t{}\nuuid\t{}",
+                r#"name	{name}
+term_lang	{terms:?}
+def_lang	{definition:?}
+created_at	{}
+last_modified	{}
+folder	{}
+uuid	{}
+progress	{}
+shuffle_map	{}"#,
                 last_modified,
                 created_at,
-                folder.clone().unwrap_or_else(|| PathBuf::from("null")).display(),
+                folder
+                    .clone()
+                    .unwrap_or_else(|| PathBuf::from("null"))
+                    .display(),
                 uuid,
+                progress.unwrap_or(0),
+                shuffle_map
+                    .as_ref()
+                    .map(|x| format!("{x:?}"))
+                    .unwrap_or_else(|| String::from("null")),
             )?;
         } else {
             writeln!(f, "Name: {name}")?;
@@ -193,6 +213,12 @@ impl Display for WordsMeta {
                 writeln!(f, "Folder: {}", folder.display())?;
             }
             writeln!(f, "UUID: {uuid}")?;
+            if let Some(progress) = progress {
+                writeln!(f, "Progress: {progress}")?;
+            }
+            if let Some(shuffle) = shuffle_map {
+                writeln!(f, "Shuffle: {shuffle:#?}")?;
+            }
         }
         Ok(())
     }
@@ -216,6 +242,8 @@ impl WordsMeta {
             uuid,
             created_at,
             last_modified: created_at,
+            progress: None,
+            shuffle_map: None,
         }
     }
 }

@@ -5,10 +5,6 @@ use std::{
     io::Write,
 };
 
-use rusty_words_common::{
-    model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
-    paths::{root_dir, words_file_exists},
-};
 use color_eyre::{eyre::eyre, Result};
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
@@ -18,6 +14,10 @@ use crossterm::{
 use itertools::Itertools;
 use rand::prelude::SliceRandom;
 use ron::ser::PrettyConfig;
+use rusty_words_common::{
+    model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
+    paths::{root_dir, words_file_exists},
+};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
@@ -37,8 +37,15 @@ pub fn try_list(
     method: TryMethod,
     direction: WordsDirection,
     shuffle: bool,
+    reset: bool,
 ) -> Result<()> {
-    let meta = index.get(id)?;
+    let mut meta = index
+        .lists
+        .get_mut(id)
+        .ok_or_else(|| eyre!("Could not find list by ID {id}"))?;
+    if reset {
+        meta.progress = None;
+    }
     let words_file = words_file_exists(&root_dir()?, &meta.uuid)?;
     let mut file = File::open(&words_file)?;
     let mut words: WordsList = ron::de::from_reader(&mut file)?;
@@ -52,7 +59,14 @@ pub fn try_list(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let res = try_tui(&mut words, &mut terminal, meta, &method, direction, shuffle);
+    let res = try_tui(
+        &mut words,
+        &mut terminal,
+        &mut meta,
+        &method,
+        direction,
+        shuffle,
+    );
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -66,7 +80,7 @@ pub fn try_list(
 pub fn try_tui(
     list: &mut WordsList,
     terminal: &mut Terminal<impl Write + Backend>,
-    meta: &WordsMeta,
+    meta: &mut WordsMeta,
     method: &TryMethod,
     direction: WordsDirection,
     shuffle: bool,
@@ -75,14 +89,17 @@ pub fn try_tui(
         return Ok(());
     }
     let total_words = list.0.len();
-    let mut n = 0;
+    let mut n = meta.progress.unwrap_or(0);
     let mut shuffle_map = HashMap::new();
 
     if shuffle {
         let mut random_array = (0..total_words).collect_vec();
         let mut rng = rand::thread_rng();
         random_array.shuffle(&mut rng);
-        shuffle_map = HashMap::from_iter((0..total_words).zip(random_array));
+        shuffle_map = meta
+            .shuffle_map
+            .insert(HashMap::from_iter((0..total_words).zip(random_array)))
+            .clone();
     }
 
     let mut rotation: VecDeque<_> = (0..10)
@@ -130,7 +147,7 @@ pub fn try_tui(
             def_lang: &def_lang,
         };
         let (is_correct, guess) = match method {
-            TryMethod::Write => write_and_check(terminal, app),
+            TryMethod::Write => write_and_check(terminal, app, list, &shuffle_map),
             TryMethod::Mpc => todo!(),
         }?;
         let ask = ask.join(", ");
@@ -172,7 +189,9 @@ pub fn try_tui(
 type AppTerms<'a> = &'a [Cow<'a, str>];
 struct App<'a> {
     message: &'a Spans<'a>,
-    meta: &'a WordsMeta,
+    meta: &'a mut WordsMeta,
+    /// The progress that has been made (stored in a string so you don't have to tostring it
+    /// multiple times per word)
     n: &'a str,
     total_words: &'a str,
     direction: &'a str,
@@ -182,7 +201,12 @@ struct App<'a> {
     def_lang: &'a str,
 }
 
-fn write_and_check<B: Backend>(terminal: &mut Terminal<B>, app: App<'_>) -> Result<(bool, String)> {
+fn write_and_check<B: Backend>(
+    terminal: &mut Terminal<B>,
+    app: App<'_>,
+    list: &mut WordsList,
+    shuffle_map: &HashMap<usize, usize>,
+) -> Result<(bool, String)> {
     let mut input: Input = String::new().into();
     loop {
         terminal.draw(|f| write_ui(f, &app, input.value()))?;
@@ -192,7 +216,15 @@ fn write_and_check<B: Backend>(terminal: &mut Terminal<B>, app: App<'_>) -> Resu
                     break;
                 }
                 (KeyCode::Char('q'), KeyModifiers::CONTROL) => {
-                    // TODO: Save state
+                    list.0.sort_unstable_by(|x, y| {
+                        x.times_answered_correctly.cmp(&y.times_answered_correctly)
+                    });
+                    app.meta.progress = Some(
+                        app.n
+                            .parse()
+                            .expect("Should always be a valid number given by callee"),
+                    );
+                    app.meta.shuffle_map = Some(shuffle_map.clone());
                     return Err(eyre!("User quit"));
                 }
                 _ => {

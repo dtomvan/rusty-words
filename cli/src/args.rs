@@ -78,6 +78,8 @@ pub struct TryArgs {
     pub direction: Option<WordsDirection>,
     #[clap(short, long)]
     pub shuffle: bool,
+    #[clap(short, long)]
+    pub reset: bool,
 }
 
 #[derive(ArgEnum, Debug, Clone)]
