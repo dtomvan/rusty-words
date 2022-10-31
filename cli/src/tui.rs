@@ -16,7 +16,7 @@ use rand::prelude::SliceRandom;
 use ron::ser::PrettyConfig;
 use rusty_words_common::{
     model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
-    paths::{root_dir, words_file_exists},
+    paths::{root_dir, words_file_exists, index_file},
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -41,7 +41,9 @@ pub fn try_list(
 ) -> Result<()> {
     let mut meta = index
         .lists
-        .get_mut(id)
+        .get_mut(id.checked_sub(1).ok_or_else(|| {
+            eyre!("Integer underflow when trying list {id}, lists are 1-indexed.")
+        })?)
         .ok_or_else(|| eyre!("Could not find list by ID {id}"))?;
     if reset {
         meta.progress = None;
@@ -73,6 +75,10 @@ pub fn try_list(
 
     let ser = ron::ser::to_string_pretty(&words, PrettyConfig::default())?;
     write!(&mut File::create(words_file)?, "{ser}")?;
+
+    let ser = ron::ser::to_string_pretty(&index, PrettyConfig::default())?;
+    let mut index_file = File::create(index_file()?)?;
+    write!(&mut index_file, "{ser}")?;
 
     res
 }
@@ -301,9 +307,10 @@ fn write_ui<'a, B: Backend>(f: &'a mut Frame<B>, app: &'a App<'a>, input: &'a st
 fn check_word<'a>(method: &TryMethod, input: &'a str, check: &[Cow<'a, str>]) -> bool {
     check.iter().any(|x| match method {
         TryMethod::Write => {
+            let x = x.to_lowercase();
             let parentheses = regex::Regex::new("\\(.*\\)").unwrap();
-            let x = x.replace(&parentheses, "");
-            x.trim().eq_ignore_ascii_case(input)
+            let y = x.replace(&parentheses, "");
+            y.trim() == input || x.replace(['(', ')'], "").trim() == input
         }
         TryMethod::Mpc => input == x,
     }) || input == check.join(", ")

@@ -58,6 +58,8 @@ pub struct NewArgs {
     pub def_lang: String,
     #[clap(short, long)]
     pub dir: Option<PathBuf>,
+    #[clap(arg_enum, long)]
+    pub direction: Option<WordsDirection>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -67,6 +69,8 @@ pub struct ImportArgs {
     pub def_lang: Option<String>,
     #[clap(short, long)]
     pub dir: Option<PathBuf>,
+    #[clap(arg_enum, long)]
+    pub direction: Option<WordsDirection>,
 }
 
 #[derive(Args, Debug, Clone)]

@@ -1,4 +1,10 @@
-#![feature(option_get_or_insert_default, path_file_prefix, option_result_contains, drain_filter, int_roundings)]
+#![feature(
+    option_get_or_insert_default,
+    path_file_prefix,
+    option_result_contains,
+    drain_filter,
+    int_roundings
+)]
 
 use std::{fs::File, io::Write, process::Command};
 
@@ -53,6 +59,7 @@ fn main() -> Result<()> {
             term_lang,
             def_lang,
             dir,
+            direction,
         }) => {
             let data = std::fs::read_to_string(&filename)?;
             let name = filename.file_prefix();
@@ -64,7 +71,15 @@ fn main() -> Result<()> {
                 std::io::stdin().read_line(&mut name)?;
                 name
             };
-            let id = index.import_list(name.clone(), &data, &filename, term_lang, def_lang, dir)?;
+            let id = index.import_list(
+                name.clone(),
+                &data,
+                &filename,
+                term_lang,
+                def_lang,
+                dir,
+                direction,
+            )?;
             println!(
                 "Successfully imported words list `{}` from `{}` with ID {}.",
                 name,
@@ -196,6 +211,7 @@ fn main() -> Result<()> {
             term_lang,
             def_lang,
             dir,
+            direction,
         }) => {
             let path = root_dir.join("temp.tsv");
             drop(File::create(&path)?);
@@ -224,7 +240,15 @@ fn main() -> Result<()> {
                 .with_suggestion(|| "Try setting $EDITOR correctly (or installing vim)")?
                 .wait()?;
             let data = std::fs::read_to_string(&path)?;
-            let id = index.import_list(name, &data, &path, Some(term_lang), Some(def_lang), dir)?;
+            let id = index.import_list(
+                name,
+                &data,
+                &path,
+                Some(term_lang),
+                Some(def_lang),
+                dir,
+                direction,
+            )?;
             println!("Successfully created list {id}.");
         }
         args::Command::Try(TryArgs {

@@ -86,11 +86,13 @@ impl WordsIndex {
         term_lang: Option<String>,
         def_lang: Option<String>,
         dir: Option<PathBuf>,
+        direction: Option<WordsDirection>,
     ) -> Result<usize> {
         let parsed = PrimitiveWordsList::try_from(data)
             .with_context(|| format!("while trying to import {}", filename.display()))?;
 
-        let list = WordsList::from(parsed);
+        let mut list = WordsList::from(parsed);
+        list.apply_direction(direction);
         let meta = WordsMeta::new(name, term_lang, def_lang, dir);
         let words_file = new_words_file(&meta.uuid)?;
         self.lists.push(meta);
@@ -254,6 +256,14 @@ impl WordsMeta {
 // we do not need to keep track of the rotation buffer, as it will be semi-consistent.
 pub struct WordsList<'a>(pub Vec<WordsEntry<'a>>);
 
+impl<'a> WordsList<'a> {
+    fn apply_direction(&mut self, dir: Option<WordsDirection>) {
+        if let Some(dir) = dir {
+            self.0.iter_mut().for_each(|x| x.direction = dir);
+        }
+    }
+}
+
 impl Display for WordsList<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if f.alternate() {
@@ -285,7 +295,7 @@ impl<'a> From<PrimitiveWordsList<'a>> for WordsList<'a> {
                 .map(|(term, definitions)| WordsEntry {
                     terms: vec![Cow::Owned(term)],
                     definitions,
-                    direction: WordsDirection::TD,
+                    direction: WordsDirection::Auto,
                     times_answered_correctly: 0,
                 })
                 .collect(),
