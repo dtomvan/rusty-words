@@ -24,12 +24,12 @@ use std::{
     fs::File,
     io::Write,
     ops::BitAnd,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, str::FromStr,
 };
 
 use aho_corasick::AhoCorasick;
 use chrono::{DateTime, Utc};
-use clap::clap_derive::ArgEnum;
+use clap::clap_derive::ValueEnum;
 use color_eyre::{
     eyre::{eyre, Context},
     Help, Report, Result,
@@ -331,7 +331,7 @@ pub struct WordsEntry<'a> {
     pub times_answered_correctly: usize,
 }
 
-#[derive(ArgEnum, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default, Tabled)]
+#[derive(ValueEnum, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default, Tabled)]
 pub enum WordsDirection {
     /// Automatic, determined by list
     Auto,
@@ -373,6 +373,20 @@ impl Display for WordsDirection {
                 WordsDirection::Both => "both",
             }
         )
+    }
+}
+
+impl FromStr for WordsDirection {
+    type Err = color_eyre::eyre::Report;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(Self::Auto),
+            "dt" => Ok(Self::DT),
+            "td" => Ok(Self::TD),
+            "both" => Ok(Self::Both),
+            e => Err(color_eyre::eyre::eyre!("Invalid words direction. Expected <auto|dt|td|both> got {e}")),
+        }
     }
 }
 

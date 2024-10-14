@@ -1,8 +1,5 @@
 #![feature(
-    option_get_or_insert_default,
     path_file_prefix,
-    option_result_contains,
-    drain_filter,
     int_roundings
 )]
 
@@ -163,8 +160,10 @@ fn main() -> Result<()> {
                 .enumerate()
                 .map(|(i, x)| (i, x.uuid, words_file_exists(&root_dir, &x.uuid)))
                 .collect_vec();
+            patterns = patterns.into_iter().filter(|(_, _, x)| x.is_ok()).collect_vec();
             let mut not_exists = patterns
-                .drain_filter(|(_, _, x)| x.is_err())
+                .iter()
+                .filter(|(_, _, x)| x.is_err())
                 .map(|(i, x, _)| (i, x))
                 .collect_vec();
             not_exists.sort_by_key(|(i, _)| *i);
@@ -192,7 +191,7 @@ fn main() -> Result<()> {
             for file in std::fs::read_dir(root_dir)?
                 .filter_map(|entry| entry.ok().map(|ok| ok.path()))
                 .filter(|path| {
-                    path.extension().contains(&"ron")
+                    path.extension().is_some_and(|e| e.to_string_lossy().contains("ron"))
                         && path.is_file()
                         && !path.ends_with("index.ron")
                         && !patterns.contains(path)
@@ -219,13 +218,13 @@ fn main() -> Result<()> {
             let found = editor.is_some();
             let editor = editor.unwrap_or(if cfg!(windows) {
                 "notepad".into()
-            } else if cfg!(darwin) {
+            } else if cfg!(target_os = "macos") {
                 "/Applications/TextEdit.app/Contents/MacOS/TextEdit".into()
             } else {
                 // Let's hope you have vim in this case
                 "vim".into()
             });
-            Command::new(&editor)
+            let returned = Command::new(&editor)
                 .arg(&path)
                 .spawn()
                 .with_note(|| "while trying to spawn your editor")
@@ -239,6 +238,9 @@ fn main() -> Result<()> {
                 })
                 .with_suggestion(|| "Try setting $EDITOR correctly (or installing vim)")?
                 .wait()?;
+            if !returned.success() {
+                color_eyre::eyre::bail!("Editor exited with nonzero exitcode");
+            }
             let data = std::fs::read_to_string(&path)?;
             let id = index.import_list(
                 name,

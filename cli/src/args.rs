@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{clap_derive::ArgEnum, Args, Parser, Subcommand};
+use clap::{clap_derive::ValueEnum, Args, Parser, Subcommand};
 
 use rusty_words_common::model::WordsDirection;
 
@@ -58,7 +58,7 @@ pub struct NewArgs {
     pub def_lang: String,
     #[clap(short, long)]
     pub dir: Option<PathBuf>,
-    #[clap(arg_enum, long)]
+    #[clap(value_enum, long)]
     pub direction: Option<WordsDirection>,
 }
 
@@ -69,16 +69,16 @@ pub struct ImportArgs {
     pub def_lang: Option<String>,
     #[clap(short, long)]
     pub dir: Option<PathBuf>,
-    #[clap(arg_enum, long)]
+    #[clap(value_enum, long)]
     pub direction: Option<WordsDirection>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct TryArgs {
     pub id: usize,
-    #[clap(arg_enum)]
+    #[clap(value_enum)]
     pub method: TryMethod,
-    #[clap(arg_enum, short, long)]
+    #[clap(value_enum, short, long)]
     pub direction: Option<WordsDirection>,
     #[clap(short, long)]
     pub shuffle: bool,
@@ -86,7 +86,7 @@ pub struct TryArgs {
     pub reset: bool,
 }
 
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone)]
 pub enum TryMethod {
     /// Literally type the definition
     Write,

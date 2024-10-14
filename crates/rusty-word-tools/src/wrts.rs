@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{stdin, stdout, BufRead, BufReader, Read},
+    io::{stdin, stdout, BufRead, BufReader},
 };
 
 use color_eyre::Result;
@@ -83,6 +83,6 @@ pub fn to_json(
             locales,
         },
     };
-    serde_json::to_writer(stdout().lock(), &lists);
+    serde_json::to_writer(stdout().lock(), &lists)?;
     Ok(())
 }
