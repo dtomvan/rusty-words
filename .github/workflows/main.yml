@@ -12,12 +12,40 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: DeterminateSystems/flake-checker-action@main
-      - name: Run `nix build`
+      - name: Build for Nix
         run: nix build .
+      - name: Build for generic linux
+        run: nix build .#packages.x86_64-linux.genericLinux --out-link result-generic
+      - name: Build an arx
+        run: nix bundle .#packages.x86_64-linux.default
+      - name: Build bundle for debian
+        run: "nix bundle --bundler github:NixOS/bundlers#toDEB .#packages.x86_64-linux.default"
+      - name: Build bundle for fedora
+        run: "nix bundle --bundler github:NixOS/bundlers#toRPM .#packages.x86_64-linux.default"
       - name: Upload nix result
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: rwds-cli-bin-linux-x86_64
+          name: rwds-cli-bin-nix-x86_64
           path: result
+      - name: Upload generic linux result
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: rwds-cli-bin-linux-x86_64
+          path: result-generic
+      - name: Upload arx
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: rwds-cli-arx
+          path: rwds-cli-arx
+      - name: Upload deb
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: rwds-cli-bin-deb-x86_64
+          path: deb-single-rwds-cli
+      - name: Upload rpm
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: rwds-cli-bin-rpm-x86_64
+          path: rpm-single-rwds-cli
   
   

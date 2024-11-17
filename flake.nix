@@ -54,6 +54,12 @@
     in {
       packages = {
         default = rwds-cli;
+		genericLinux = rwds-cli.overrideAttrs {
+			nativeBuildInputs = [pkgs.patchelf];
+			postInstall = ''
+			patchelf --set-interpreter /lib/ld-linux.so.2 $out/bin/rwds-cli
+			'';
+		};
       };
 
       apps.default = flake-utils.lib.mkApp {
