@@ -1,5 +1,0 @@
-[alias]
-cli = "run --bin rwds-cli --"
-gui = "run --bin rwds-gui --"
-rcli = "run --bin --release rwds-cli --"
-rgui = "run --bin --release rwds-gui --"
