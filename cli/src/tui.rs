@@ -1,3 +1,6 @@
+use lazy_regex::regex_replace_all;
+use num::integer::div_floor;
+
 use std::{
     borrow::Cow,
     collections::{HashMap, VecDeque},
@@ -118,7 +121,7 @@ pub fn try_tui(
 
     // TODO: Make this configurable
     let total_progress: usize = 3;
-    let td_progress = total_progress.div_floor(2);
+    let td_progress = div_floor(total_progress, 2);
     let tui_total = total_words.to_string();
 
     let term_lang = meta.terms.to_string();
@@ -310,8 +313,7 @@ fn check_word<'a>(method: &TryMethod, input: &'a str, check: &[Cow<'a, str>]) ->
     check.iter().any(|x| match method {
         TryMethod::Write => {
             let x = x.to_lowercase();
-            let parentheses = regex::Regex::new("\\(.*\\)").unwrap();
-            let y = x.replace(&parentheses, "");
+            let y = regex_replace_all!(r#"\\(.*\\)"#, &x, "");
             y.trim() == input || x.replace(['(', ')'], "").trim() == input
         }
         TryMethod::Mpc => input == x,

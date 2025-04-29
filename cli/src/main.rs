@@ -1,5 +1,3 @@
-#![feature(path_file_prefix, int_roundings)]
-
 use std::{fs::File, io::Write, process::Command};
 
 use clap::Parser;
@@ -56,7 +54,9 @@ fn main() -> Result<()> {
             direction,
         }) => {
             let data = std::fs::read_to_string(&filename)?;
-            let name = filename.file_prefix();
+            let name = filename.file_stem(); // ! previously used file_prefix but
+            // it says in nightly for way too
+            // long
             let name = if let Some(name) = name {
                 name.to_string_lossy().to_string()
             } else {
