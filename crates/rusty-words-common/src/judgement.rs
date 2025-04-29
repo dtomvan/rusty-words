@@ -21,7 +21,7 @@ fn check_word_<'a, S: Borrow<str>>(method: &TryMethod, input: &'a str, check: &'
         TryMethod::Write => {
             let input = input.trim();
             let x = &x.borrow().trim();
-            let y = dbg!(regex_replace_all!(r#"\(.*\)"#, &x, ""));
+            let y = regex_replace_all!(r#"\(.*\)"#, &x, "");
             let y = y.trim();
             let z = x.replace(['(', ')', ' '], "");
             let z = z.trim();
