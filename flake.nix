@@ -4,14 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-    crane.url = "github:ipetkov/crane";
-
-    fenix = {
-      url = "github:nix-community/fenix/monthly";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-analyzer-src.follows = "";
-    };
-
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
@@ -30,8 +22,6 @@
     {
       self,
       nixpkgs,
-      crane,
-      fenix,
       flake-utils,
       treefmt-nix,
       ...
@@ -42,11 +32,8 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-        craneLib = (crane.mkLib pkgs).overrideToolchain fenix.packages.${system}.minimal.toolchain;
 
-        rwds-cli = craneLib.buildPackage {
-          src = ./.;
-        };
+        rwds-cli = pkgs.callPackage ./default.nix { };
 
         treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
       in
@@ -56,8 +43,16 @@
           genericLinux = rwds-cli.overrideAttrs (
             final: prev: {
               nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.patchelf ];
-              postInstall = ''
-                patchelf --set-interpreter /lib/ld-linux.so.2 $out/bin/rwds-cli
+              fixupPhase = ''
+                runHook preFixup
+
+                find $out -type f -executable \
+                  -exec patchelf \
+                    --set-interpreter \
+                    /lib/ld-linux.so.2 \
+                    {} \;
+
+                runHook postFixup
               '';
             }
           );
@@ -67,8 +62,13 @@
           drv = rwds-cli;
         };
 
-        devShells.default = craneLib.devShell {
-          packages = [ ];
+        devShells.default = pkgs.mkShell {
+          packages = with pkgs; [
+            rustc
+            cargo
+            clippy
+            rust-analyzer
+          ];
         };
 
         formatter = treefmt.config.build.wrapper;
