@@ -19,4 +19,4 @@ jobs:
       - name: cargo check
         run: cargo check
       - name: cargo clippy
-        run: cargo clippy
+        run: cargo clippy -- -D warnings
