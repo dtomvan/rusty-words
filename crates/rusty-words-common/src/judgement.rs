@@ -1,7 +1,7 @@
 // TODO: Make this more advanced
-use std::borrow::Borrow;
 use clap::ValueEnum;
 use lazy_regex::regex_replace_all;
+use std::borrow::Borrow;
 
 #[derive(ValueEnum, Debug, Clone)]
 pub enum TryMethod {
@@ -12,8 +12,8 @@ pub enum TryMethod {
 }
 
 pub fn check_word<'a, S: Borrow<str>>(method: &TryMethod, input: &'a str, check: &'a [S]) -> bool {
-    !check.is_empty() &&
-        (check_word_(method, input, check) || check_word_(method, input, &[check.join(", ")]))
+    !check.is_empty()
+        && (check_word_(method, input, check) || check_word_(method, input, &[check.join(", ")]))
 }
 
 fn check_word_<'a, S: Borrow<str>>(method: &TryMethod, input: &'a str, check: &'a [S]) -> bool {
@@ -25,7 +25,9 @@ fn check_word_<'a, S: Borrow<str>>(method: &TryMethod, input: &'a str, check: &'
             let y = y.trim();
             let z = x.replace(['(', ')', ' '], "");
             let z = z.trim();
-            input.eq_ignore_ascii_case(x) || input.eq_ignore_ascii_case(y) || input.eq_ignore_ascii_case(z)
+            input.eq_ignore_ascii_case(x)
+                || input.eq_ignore_ascii_case(y)
+                || input.eq_ignore_ascii_case(z)
         }
         TryMethod::Mpc => input == x.borrow(),
     })
@@ -63,7 +65,11 @@ mod tests {
     fn test_one_of_multiple() {
         assert!(check_word(&TryMethod::Write, "foo", &["baz", "foo"]));
         assert!(check_word(&TryMethod::Write, "bar", &["baz", "bar", "baz"]));
-        assert!(!check_word(&TryMethod::Write, "barz", &["foo", "baz", "bar"]));
+        assert!(!check_word(
+            &TryMethod::Write,
+            "barz",
+            &["foo", "baz", "bar"]
+        ));
 
         assert!(check_word(&TryMethod::Mpc, "foo", &["baz", "foo"]));
         assert!(check_word(&TryMethod::Mpc, "bar", &["baz", "bar", "baz"]));
@@ -74,12 +80,24 @@ mod tests {
     fn test_all_of_multiple() {
         assert!(check_word(&TryMethod::Write, "baz, foo", &["baz", "foo"]));
         assert!(check_word(&TryMethod::Write, "baz,foo", &["baz", "foo"]));
-        assert!(check_word(&TryMethod::Write, "baz, bar, baz", &["baz", "bar", "baz"]));
+        assert!(check_word(
+            &TryMethod::Write,
+            "baz, bar, baz",
+            &["baz", "bar", "baz"]
+        ));
 
         assert!(check_word(&TryMethod::Mpc, "baz, foo", &["baz", "foo"]));
-        assert!(check_word(&TryMethod::Mpc, "baz, bar, baz", &["baz", "bar", "baz"]));
+        assert!(check_word(
+            &TryMethod::Mpc,
+            "baz, bar, baz",
+            &["baz", "bar", "baz"]
+        ));
         // In multiple choice mode, only match exactly
-        assert!(!check_word(&TryMethod::Mpc, "baz,bar,baz", &["baz", "bar", "baz"]));
+        assert!(!check_word(
+            &TryMethod::Mpc,
+            "baz,bar,baz",
+            &["baz", "bar", "baz"]
+        ));
         assert!(!check_word(&TryMethod::Mpc, "barz", &["foo", "baz", "bar"]));
     }
 
@@ -97,21 +115,43 @@ mod tests {
 
     #[test]
     fn test_sentence() {
-        assert!(check_word(&TryMethod::Write, "the quick brown fox, jumped over the lazy dog.",
-                &["The quick brown fox, jumped over the lazy dog."]));
+        assert!(check_word(
+            &TryMethod::Write,
+            "the quick brown fox, jumped over the lazy dog.",
+            &["The quick brown fox, jumped over the lazy dog."]
+        ));
 
-        assert!(!check_word(&TryMethod::Mpc, "the quick brown fox, jumped over the lazy dog.",
-                &["The quick brown fox, jumped over the lazy dog."]));
+        assert!(!check_word(
+            &TryMethod::Mpc,
+            "the quick brown fox, jumped over the lazy dog.",
+            &["The quick brown fox, jumped over the lazy dog."]
+        ));
     }
 
     #[test]
     fn test_parens() {
-        assert!(check_word(&TryMethod::Write, "Such (optional)", &["Such (optional)"]));
-        assert!(!check_word(&TryMethod::Write, "Such (optional)", &["Such optional"]));
+        assert!(check_word(
+            &TryMethod::Write,
+            "Such (optional)",
+            &["Such (optional)"]
+        ));
+        assert!(!check_word(
+            &TryMethod::Write,
+            "Such (optional)",
+            &["Such optional"]
+        ));
         assert!(check_word(&TryMethod::Write, "Such", &["Such (optional)"]));
 
-        assert!(check_word(&TryMethod::Mpc, "Such (optional)", &["Such (optional)"]));
-        assert!(!check_word(&TryMethod::Mpc, "Such (optional)", &["Such optional"]));
+        assert!(check_word(
+            &TryMethod::Mpc,
+            "Such (optional)",
+            &["Such (optional)"]
+        ));
+        assert!(!check_word(
+            &TryMethod::Mpc,
+            "Such (optional)",
+            &["Such optional"]
+        ));
         assert!(!check_word(&TryMethod::Mpc, "Such", &["Such (optional)"]));
     }
 

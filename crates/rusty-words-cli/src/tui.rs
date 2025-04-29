@@ -25,9 +25,9 @@ use ratatui::{
 };
 use ron::ser::PrettyConfig;
 use rusty_words_common::{
+    judgement::{TryMethod, check_word},
     model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
     paths::{index_file, root_dir, words_file_exists},
-    judgement::{TryMethod, check_word},
 };
 use tui_input::Input;
 use tui_input::backend::crossterm as input_backend;
