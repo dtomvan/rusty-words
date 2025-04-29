@@ -7,7 +7,7 @@
     crane.url = "github:ipetkov/crane";
 
     fenix = {
-      url = "github:nix-community/fenix";
+      url = "github:nix-community/fenix/monthly";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-analyzer-src.follows = "";
     };
@@ -16,58 +16,56 @@
   };
 
   nixConfig = {
-    extra-substituters = [ "https://crane.cachix.org" ];
-    extra-trusted-public-keys = [ "crane.cachix.org-1:8Scfpmn9w+hGdXH/Q9tTLiYAE/2dnJYRJP7kl80GuRk=" ];
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+    ];
+
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
   };
 
-  outputs = {
-    nixpkgs,
-    crane,
-    fenix,
-    flake-utils,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = nixpkgs.legacyPackages.${system};
+  outputs =
+    {
+      nixpkgs,
+      crane,
+      fenix,
+      flake-utils,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+        };
 
-      craneLib = (crane.mkLib pkgs).overrideToolchain (p:
-        fenix.packages.${system}.fromToolchainFile {
-          file = ./rust-toolchain.toml;
-          sha256 = "sha256-dQWHbEEQOreGVxzawb8LYbstYd1IBpdBtY2ELj0ahB4=";
-        });
-      src = craneLib.cleanCargoSource ./.;
+        craneLib = (crane.mkLib pkgs).overrideToolchain fenix.packages.${system}.minimal.toolchain;
 
-      commonArgs = {
-        inherit src;
-		cargoLock = ./Cargo.lock;
-        strictDeps = true;
-      };
+        rwds-cli = craneLib.buildPackage {
+          src = ./.;
+        };
+      in
+      {
+        packages = {
+          default = rwds-cli;
+          genericLinux = rwds-cli.overrideAttrs (
+            final: prev: {
+              nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.patchelf ];
+              postInstall = ''
+                patchelf --set-interpreter /lib/ld-linux.so.2 $out/bin/rwds-cli
+              '';
+            }
+          );
+        };
 
-      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-      rwds-cli = craneLib.buildPackage (commonArgs
-        // {
-          inherit cargoArtifacts;
-		  pname = "rwds-cli";
-		  version = "0.1.0";
-		  cargoExtraArgs = "--bin rwds-cli";
-        });
-    in {
-      packages = {
-        default = rwds-cli;
-		genericLinux = rwds-cli.overrideAttrs(final: prev: {
-			nativeBuildInputs = prev.nativeBuildInputs ++ [pkgs.patchelf];
-			postInstall = ''
-			patchelf --set-interpreter /lib/ld-linux.so.2 $out/bin/rwds-cli
-			'';
-		});
-      };
+        apps.default = flake-utils.lib.mkApp {
+          drv = rwds-cli;
+        };
 
-      apps.default = flake-utils.lib.mkApp {
-        drv = rwds-cli;
-      };
-
-      devShells.default = craneLib.devShell {
-        packages = [];
-      };
-    });
+        devShells.default = craneLib.devShell {
+          packages = [ ];
+        };
+      }
+    );
 }
