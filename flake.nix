@@ -13,6 +13,7 @@
     };
 
     flake-utils.url = "github:numtide/flake-utils";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
   nixConfig = {
@@ -27,10 +28,12 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       crane,
       fenix,
       flake-utils,
+      treefmt-nix,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -39,12 +42,13 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-
         craneLib = (crane.mkLib pkgs).overrideToolchain fenix.packages.${system}.minimal.toolchain;
 
         rwds-cli = craneLib.buildPackage {
           src = ./.;
         };
+
+        treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
       in
       {
         packages = {
@@ -66,6 +70,9 @@
         devShells.default = craneLib.devShell {
           packages = [ ];
         };
+
+        formatter = treefmt.config.build.wrapper;
+        checks.formatting = treefmt.config.build.check self;
       }
     );
 }
