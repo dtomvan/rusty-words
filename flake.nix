@@ -54,6 +54,7 @@
 
                 runHook postFixup
               '';
+              doInstallCheck = false; # at this point the binary doesn't work with Nix anymore
             }
           );
         };
