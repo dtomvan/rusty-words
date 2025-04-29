@@ -285,7 +285,6 @@ fn write_ui<'a>(f: &'a mut Frame, app: &'a App<'a>, input: &'a Input) {
         .block(Block::default().borders(Borders::ALL))
         .alignment(Alignment::Center);
 
-    // TODO: Position cursor instead of append |
     let input_view = Paragraph::new(input.to_span())
         .block(Block::default().borders(Borders::ALL).title("Input"))
         .wrap(Wrap { trim: true });
