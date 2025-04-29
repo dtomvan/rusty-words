@@ -3,7 +3,7 @@ members = [ "crates/*" ]
 resolver = "2"
 
 metadata.crane.name = "rusty-words"
-package.version = "0.1.0"
+package.version = "0.1.1"
 
 [workspace.dependencies.clap]
 version = "4.5.21"

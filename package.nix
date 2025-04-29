@@ -1,14 +1,19 @@
 {
   lib,
   rustPlatform,
+  versionCheckHook,
 }:
-rustPlatform.buildRustPackage {
+rustPlatform.buildRustPackage rec {
   pname = "rusty-words";
-  version = "0.1.0";
+  version = "0.1.1";
 
   src = ./.;
 
-  cargoHash = "sha256-y4ezjzNuJTa3OobX8G093wKJ6eieY9DMaM/ePEx8B6U=";
+  cargoHash = "sha256-/hbRzl8dh6r1mRbW1RZ2idhOJDP7HJQX6R7LpSn1xIw=";
+
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  versionCheckProgram = "${placeholder "out"}/bin/${meta.mainProgram}";
 
   meta = {
     description = "Practice your flashcards like in Quizlet, but for the TUI";
