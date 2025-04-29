@@ -12,6 +12,7 @@ chrono = "0.4.20"
 clap = { workspace = true }
 color-eyre = "0.6.1"
 dirs = "4.0.0"
+lazy-regex = "3.4.1"
 libc = "0.2.126"
 rand = "0.8.5"
 ron = "0.7.1"

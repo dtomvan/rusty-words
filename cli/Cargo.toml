@@ -20,7 +20,6 @@ rusty-words-common = { path = "../crates/rusty-words-common" }
 serde = { version = "1.0.210" }
 ratatui = "0.28"
 tui-input = "0.10.1"
-lazy-regex = "3.4.1"
 num = "0.4.3"
 
 [[bin]]

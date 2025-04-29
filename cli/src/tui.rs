@@ -1,4 +1,3 @@
-use lazy_regex::regex_replace_all;
 use num::integer::div_floor;
 
 use std::{
@@ -28,11 +27,10 @@ use ron::ser::PrettyConfig;
 use rusty_words_common::{
     model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
     paths::{index_file, root_dir, words_file_exists},
+    judgement::{TryMethod, check_word},
 };
 use tui_input::Input;
 use tui_input::backend::crossterm as input_backend;
-
-use crate::args::TryMethod;
 
 pub fn try_list(
     index: &mut WordsIndex,
@@ -306,16 +304,4 @@ fn write_ui<'a>(f: &'a mut Frame, app: &'a App<'a>, input: &'a Input) {
     f.render_widget(header, chunks[0]);
     f.render_widget(ask, chunks[1]);
     f.render_widget(input_view, chunks[2]);
-}
-
-// TODO: Make this more advanced
-fn check_word<'a>(method: &TryMethod, input: &'a str, check: &[Cow<'a, str>]) -> bool {
-    check.iter().any(|x| match method {
-        TryMethod::Write => {
-            let x = x.to_lowercase();
-            let y = regex_replace_all!(r#"\\(.*\\)"#, &x, "");
-            y.trim() == input || x.replace(['(', ')'], "").trim() == input
-        }
-        TryMethod::Mpc => input == x,
-    }) || input == check.join(", ")
 }

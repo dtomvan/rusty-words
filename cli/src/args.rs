@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand, clap_derive::ValueEnum};
+use clap::{Args, Parser, Subcommand};
 
+use rusty_words_common::judgement::TryMethod;
 use rusty_words_common::model::WordsDirection;
 
 #[derive(Parser, Debug, Clone)]
@@ -84,14 +85,6 @@ pub struct TryArgs {
     pub shuffle: bool,
     #[clap(short, long)]
     pub reset: bool,
-}
-
-#[derive(ValueEnum, Debug, Clone)]
-pub enum TryMethod {
-    /// Literally type the definition
-    Write,
-    /// Multiple choice (choose 1, 2, 3, 4)
-    Mpc,
 }
 
 #[derive(Args, Debug, Clone)]
