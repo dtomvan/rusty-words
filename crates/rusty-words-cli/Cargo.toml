@@ -16,7 +16,7 @@ libc = "0.2.159"
 rand = "0.8.5"
 regex = { version = "1.11.0" }
 ron = "0.8.1"
-rusty-words-common = { path = "../crates/rusty-words-common" }
+rusty-words-common = { path = "../rusty-words-common" }
 serde = { version = "1.0.210" }
 ratatui = "0.28"
 tui-input = "0.10.1"

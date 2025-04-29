@@ -1,5 +1,5 @@
 [workspace]
-members = [ "crates/*", "cli" ]
+members = [ "crates/*" ]
 resolver = "2"
 
 metadata.crane.name = "rusty-words"
