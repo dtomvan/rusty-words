@@ -1,0 +1,22 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: nix fmt
+        run: nix build .#checks.x86_64-linux.formatting # tests both rust and nix formatting at once
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: install rust tools
+        run: nix profile install nixpkgs#{rustc,cargo,clippy}
+      - name: cargo check
+        run: cargo check
+      - name: cargo clippy
+        run: cargo clippy
