@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 
 use rusty_words_common::judgement::TryMethod;
-use rusty_words_common::model::WordsDirection;
+// HACK: ImportArgs is now in common, but the rest of the args parsing is not because ImportArgs is
+// consumed by `common::import_list`.
+use rusty_words_common::model::{ImportArgs, WordsDirection};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(about, author, version)]
@@ -57,17 +59,6 @@ pub struct NewArgs {
     pub name: String,
     pub term_lang: String,
     pub def_lang: String,
-    #[clap(short, long)]
-    pub dir: Option<PathBuf>,
-    #[clap(value_enum, long)]
-    pub direction: Option<WordsDirection>,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct ImportArgs {
-    pub filename: PathBuf,
-    pub term_lang: Option<String>,
-    pub def_lang: Option<String>,
     #[clap(short, long)]
     pub dir: Option<PathBuf>,
     #[clap(value_enum, long)]

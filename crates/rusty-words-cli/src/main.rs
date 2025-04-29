@@ -4,9 +4,9 @@ use clap::Parser;
 use color_eyre::{Help, Result, eyre::eyre};
 use itertools::Itertools;
 
-use args::{GCArgs, ImportArgs, ListArgs, NewArgs, RmArgs, ShowArgs, TryArgs};
+use args::{GCArgs, ListArgs, NewArgs, RmArgs, ShowArgs, TryArgs};
 use ron::ser::PrettyConfig;
-use rusty_words_common::model::{WordsDirection, WordsIndex, WordsList};
+use rusty_words_common::model::{ImportArgs, WordsDirection, WordsIndex, WordsList};
 use rusty_words_common::paths::{index_file, root_dir, words_file_exists};
 
 mod args;
@@ -32,6 +32,7 @@ fn main() -> Result<()> {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(false) // I think this is correct?
         .open(&index_filename)?;
 
     let mut index = match ron::de::from_reader(&mut index_file) {
@@ -46,15 +47,9 @@ fn main() -> Result<()> {
     };
 
     match args.command {
-        args::Command::Import(ImportArgs {
-            filename,
-            term_lang,
-            def_lang,
-            dir,
-            direction,
-        }) => {
-            let data = std::fs::read_to_string(&filename)?;
-            let name = filename.file_stem(); // ! previously used file_prefix but
+        args::Command::Import(args) => {
+            let data = std::fs::read_to_string(&args.filename)?;
+            let name = args.filename.file_stem(); // ! previously used file_prefix but
             // it says in nightly for way too
             // long
             let name = if let Some(name) = name {
@@ -65,19 +60,11 @@ fn main() -> Result<()> {
                 std::io::stdin().read_line(&mut name)?;
                 name
             };
-            let id = index.import_list(
-                name.clone(),
-                &data,
-                &filename,
-                term_lang,
-                def_lang,
-                dir,
-                direction,
-            )?;
+            let id = index.import_list(&name, &data, &args)?;
             println!(
                 "Successfully imported words list `{}` from `{}` with ID {}.",
                 name,
-                filename.display(),
+                args.filename.display(),
                 id
             );
         }
@@ -243,13 +230,15 @@ fn main() -> Result<()> {
             }
             let data = std::fs::read_to_string(&path)?;
             let id = index.import_list(
-                name,
+                &name,
                 &data,
-                &path,
-                Some(term_lang),
-                Some(def_lang),
-                dir,
-                direction,
+                &ImportArgs {
+                    filename: path,
+                    term_lang: Some(term_lang),
+                    def_lang: Some(def_lang),
+                    dir,
+                    direction,
+                },
             )?;
             println!("Successfully created list {id}.");
         }

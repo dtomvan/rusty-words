@@ -1,20 +1,20 @@
 //! Data model:
 //! ~/.local/share/rusty-words/index.ron -> Index file containing an array of metadata
-//!     The index is the ID.
-//!     Every entry in this array has data like:
-//!     - Name of list
-//!     - Path to words list file (located in ~/.local/share/rusty-words/UUID.ron)
-//!         -> Stores term, definition, times correctly answered for every word.
-//!         -> Tsv files can be imported and exported (losing all data except term and definition)
-//!     - Language for term and definition
-//!     - When created/modified
-//!     - How to check the user if they got a word correct
-//!     - The (fake) folder the list is in
+//!   The index is the ID.
+//!   Every entry in this array has data like:
+//!   - Name of list
+//!   - Path to words list file (located in ~/.local/share/rusty-words/UUID.ron)
+//!     -> Stores term, definition, times correctly answered for every word.
+//!     -> Tsv files can be imported and exported (losing all data except term and definition)
+//!   - Language for term and definition
+//!   - When created/modified
+//!   - How to check the user if they got a word correct
+//!   - The (fake) folder the list is in
 //! - The index file also contains the user's native language (for filtering)
-//!     Ex: The user's native lanuage is "nl" and they search for "en",
-//!         they want the lists that practice nl->en or en->nl.
-//!     Ex: The user's native lanuage is "de" and they search for "en",
-//!         they are probably not looking for en->nl or nl->en, so we sort that later in the list.
+//!   Ex: The user's native lanuage is "nl" and they search for "en", they want the lists that
+//!   practice nl->en or en->nl.
+//!   Ex: The user's native lanuage is "de" and they search for "en", they are probably not looking
+//!   for en->nl or nl->en, so we sort that later in the list.
 
 use std::{
     borrow::Cow,
@@ -24,13 +24,13 @@ use std::{
     fs::File,
     io::Write,
     ops::BitAnd,
-    path::{Path, PathBuf},
+    path::PathBuf,
     str::FromStr,
 };
 
 use aho_corasick::AhoCorasick;
 use chrono::{DateTime, Utc};
-use clap::clap_derive::ValueEnum;
+use clap::{Args, clap_derive::ValueEnum};
 use color_eyre::{
     Help, Report, Result,
     eyre::{Context, eyre},
@@ -46,6 +46,17 @@ use crate::paths::new_words_file;
 #[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
 pub struct WordsIndex {
     pub lists: Vec<WordsMeta>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ImportArgs {
+    pub filename: PathBuf,
+    pub term_lang: Option<String>,
+    pub def_lang: Option<String>,
+    #[clap(short, long)]
+    pub dir: Option<PathBuf>,
+    #[clap(value_enum, long)]
+    pub direction: Option<WordsDirection>,
 }
 
 impl WordsIndex {
@@ -79,22 +90,30 @@ impl WordsIndex {
     }
 
     /// Returns the ID of the new entry
-    pub fn import_list(
+    pub fn import_list<'a>(
         &mut self,
-        name: String,
-        data: &str,
-        filename: &Path,
-        term_lang: Option<String>,
-        def_lang: Option<String>,
-        dir: Option<PathBuf>,
-        direction: Option<WordsDirection>,
+        name: &'a str,
+        data: &'a str,
+        args: &ImportArgs,
     ) -> Result<usize> {
+        let ImportArgs {
+            filename,
+            direction,
+            term_lang,
+            def_lang,
+            dir,
+        } = args;
         let parsed = PrimitiveWordsList::try_from(data)
             .with_context(|| format!("while trying to import {}", filename.display()))?;
 
         let mut list = WordsList::from(parsed);
-        list.apply_direction(direction);
-        let meta = WordsMeta::new(name, term_lang, def_lang, dir);
+        list.apply_direction(*direction);
+        let meta = WordsMeta::new(
+            name.to_owned(),
+            term_lang.clone(),
+            def_lang.clone(),
+            dir.clone(),
+        );
         let words_file = new_words_file(&meta.uuid)?;
         self.lists.push(meta);
 
@@ -134,7 +153,7 @@ pub struct Language(pub Option<String>);
 impl Display for Language {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
-            Some(ref s) => write!(f, "{}", format_language_code(&s)),
+            Some(ref s) => write!(f, "{}", format_language_code(s)),
             None => write!(f, "not set"),
         }
     }
@@ -257,7 +276,7 @@ impl WordsMeta {
 // we do not need to keep track of the rotation buffer, as it will be semi-consistent.
 pub struct WordsList<'a>(pub Vec<WordsEntry<'a>>);
 
-impl<'a> WordsList<'a> {
+impl WordsList<'_> {
     fn apply_direction(&mut self, dir: Option<WordsDirection>) {
         if let Some(dir) = dir {
             self.0.iter_mut().for_each(|x| x.direction = dir);

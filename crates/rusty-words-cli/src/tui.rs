@@ -40,7 +40,7 @@ pub fn try_list(
     shuffle: bool,
     reset: bool,
 ) -> Result<()> {
-    let mut meta = index
+    let meta = index
         .lists
         .get_mut(id.checked_sub(1).ok_or_else(|| {
             eyre!("Integer underflow when trying list {id}, lists are 1-indexed.")
@@ -62,14 +62,7 @@ pub fn try_list(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let res = try_tui(
-        &mut words,
-        &mut terminal,
-        &mut meta,
-        &method,
-        direction,
-        shuffle,
-    );
+    let res = try_tui(&mut words, &mut terminal, meta, &method, direction, shuffle);
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
