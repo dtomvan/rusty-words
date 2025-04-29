@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{stdin, stdout, BufRead, BufReader},
+    io::{BufRead, BufReader, stdin, stdout},
 };
 
 use color_eyre::Result;

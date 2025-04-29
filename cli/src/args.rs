@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{clap_derive::ValueEnum, Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, clap_derive::ValueEnum};
 
 use rusty_words_common::model::WordsDirection;
 

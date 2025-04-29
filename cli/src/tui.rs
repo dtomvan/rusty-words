@@ -5,29 +5,29 @@ use std::{
     io::Write,
 };
 
-use color_eyre::{eyre::eyre, Result};
+use color_eyre::{Result, eyre::eyre};
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use itertools::Itertools;
 use rand::prelude::SliceRandom;
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout, Flex},
-    style::{Color, Modifier, Style},
-    text::{Span, Line, Text, ToLine, ToSpan},
-    widgets::{Block, Borders, Paragraph, Wrap},
     Frame, Terminal,
+    backend::{Backend, CrosstermBackend},
+    layout::{Alignment, Constraint, Direction, Flex, Layout},
+    style::{Color, Modifier, Style},
+    text::{Line, Span, Text, ToLine, ToSpan},
+    widgets::{Block, Borders, Paragraph, Wrap},
 };
 use ron::ser::PrettyConfig;
 use rusty_words_common::{
     model::{WordsDirection, WordsIndex, WordsList, WordsMeta},
     paths::{index_file, root_dir, words_file_exists},
 };
-use tui_input::backend::crossterm as input_backend;
 use tui_input::Input;
+use tui_input::backend::crossterm as input_backend;
 
 use crate::args::TryMethod;
 
@@ -295,7 +295,10 @@ fn write_ui<'a>(f: &'a mut Frame, app: &'a App<'a>, input: &'a Input) {
     let input_view = Paragraph::new(input.to_span())
         .block(Block::default().borders(Borders::ALL).title("Input"))
         .wrap(Wrap { trim: true });
-    f.set_cursor_position((chunks[2].x + input.visual_cursor() as u16 + 1, chunks[2].y + 1));
+    f.set_cursor_position((
+        chunks[2].x + input.visual_cursor() as u16 + 1,
+        chunks[2].y + 1,
+    ));
 
     f.render_widget(header, chunks[0]);
     f.render_widget(ask, chunks[1]);

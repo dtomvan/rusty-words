@@ -24,19 +24,20 @@ use std::{
     fs::File,
     io::Write,
     ops::BitAnd,
-    path::{Path, PathBuf}, str::FromStr,
+    path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use aho_corasick::AhoCorasick;
 use chrono::{DateTime, Utc};
 use clap::clap_derive::ValueEnum;
 use color_eyre::{
-    eyre::{eyre, Context},
     Help, Report, Result,
+    eyre::{Context, eyre},
 };
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DisplayFromStr, serde_as};
 use tabled::{Style, Table, Tabled};
 use uuid::Uuid;
 
@@ -385,7 +386,9 @@ impl FromStr for WordsDirection {
             "dt" => Ok(Self::DT),
             "td" => Ok(Self::TD),
             "both" => Ok(Self::Both),
-            e => Err(color_eyre::eyre::eyre!("Invalid words direction. Expected <auto|dt|td|both> got {e}")),
+            e => Err(color_eyre::eyre::eyre!(
+                "Invalid words direction. Expected <auto|dt|td|both> got {e}"
+            )),
         }
     }
 }

@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde_xml_rs::{EventReader, ParserConfig};
 use std::{
     fmt::Display,
-    io::{stdin, BufRead},
+    io::{BufRead, stdin},
 };
 
 /// Converts STDIN to t2k on STDOUT

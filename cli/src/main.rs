@@ -1,12 +1,9 @@
-#![feature(
-    path_file_prefix,
-    int_roundings
-)]
+#![feature(path_file_prefix, int_roundings)]
 
 use std::{fs::File, io::Write, process::Command};
 
 use clap::Parser;
-use color_eyre::{eyre::eyre, Help, Result};
+use color_eyre::{Help, Result, eyre::eyre};
 use itertools::Itertools;
 
 use args::{GCArgs, ImportArgs, ListArgs, NewArgs, RmArgs, ShowArgs, TryArgs};
@@ -139,8 +136,7 @@ fn main() -> Result<()> {
                     if let Err(e) = std::fs::remove_file(words_file) {
                         eprintln!(
                             "Error while removing list `{}` (list ID {}) is not important so it is ignored.",
-                            id,
-                            e
+                            id, e
                         );
                     }
                     Ok(())
@@ -160,7 +156,10 @@ fn main() -> Result<()> {
                 .enumerate()
                 .map(|(i, x)| (i, x.uuid, words_file_exists(&root_dir, &x.uuid)))
                 .collect_vec();
-            patterns = patterns.into_iter().filter(|(_, _, x)| x.is_ok()).collect_vec();
+            patterns = patterns
+                .into_iter()
+                .filter(|(_, _, x)| x.is_ok())
+                .collect_vec();
             let mut not_exists = patterns
                 .iter()
                 .filter(|(_, _, x)| x.is_err())
@@ -191,7 +190,8 @@ fn main() -> Result<()> {
             for file in std::fs::read_dir(root_dir)?
                 .filter_map(|entry| entry.ok().map(|ok| ok.path()))
                 .filter(|path| {
-                    path.extension().is_some_and(|e| e.to_string_lossy().contains("ron"))
+                    path.extension()
+                        .is_some_and(|e| e.to_string_lossy().contains("ron"))
                         && path.is_file()
                         && !path.ends_with("index.ron")
                         && !patterns.contains(path)
